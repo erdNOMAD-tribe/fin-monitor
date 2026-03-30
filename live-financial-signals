@@ -1,0 +1,690 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Financial Stress Monitor — United Tribe</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Mono:ital,wght@0,300;0,400;0,500;1,300&family=DM+Serif+Display:ital@0;1&display=swap" rel="stylesheet">
+<style>
+:root {
+  --ut-grad: linear-gradient(90deg, #E8973A 0%, #D95F3B 50%, #C44063 100%);
+  --ut-amber: #E8973A;
+  --ut-coral: #D95F3B;
+  --ut-rose:  #C44063;
+  --green: #3DAA74;
+  --red:   #D94F4F;
+  --amber: #D4873A;
+  --blue:  #4A86D4;
+}
+[data-theme="dark"] {
+  --bg: #0C0C0C; --surface: #161616; --surface2: #1E1E1E;
+  --border: rgba(255,255,255,0.07); --border2: rgba(255,255,255,0.13);
+  --text: #F2EDE8; --muted: #777; --faint: #333;
+  --toggle-bg: #222; --chart-grid: rgba(255,255,255,0.04);
+  --chart-tick: #555; --tooltip-bg: #1a1a1a; --tooltip-text: #F2EDE8;
+}
+[data-theme="light"] {
+  --bg: #F7F4F0; --surface: #FFFFFF; --surface2: #F0ECE7;
+  --border: rgba(0,0,0,0.08); --border2: rgba(0,0,0,0.15);
+  --text: #1A1410; --muted: #888; --faint: #DDD;
+  --toggle-bg: #E8E3DD; --chart-grid: rgba(0,0,0,0.05);
+  --chart-tick: #aaa; --tooltip-bg: #fff; --tooltip-text: #1A1410;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body {
+  background: var(--bg); color: var(--text);
+  font-family: 'DM Mono', monospace; font-size: 13px;
+  padding: 22px 20px 20px; transition: background 0.25s, color 0.25s;
+}
+
+/* ── API KEY SETUP BANNER ── */
+.setup-banner {
+  background: var(--surface);
+  border: 1px solid rgba(232,151,58,0.4);
+  border-left: 3px solid var(--ut-amber);
+  border-radius: 6px;
+  padding: 12px 14px;
+  margin-bottom: 14px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+.setup-banner.hidden { display: none; }
+.setup-label { font-size: 10px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--ut-amber); flex-shrink: 0; }
+.setup-desc { font-size: 11px; color: var(--muted); flex: 1; min-width: 160px; }
+.setup-input-wrap { display: flex; gap: 6px; align-items: center; flex-shrink: 0; }
+.setup-input {
+  font-family: 'DM Mono', monospace; font-size: 11px;
+  background: var(--surface2); border: 1px solid var(--border2);
+  color: var(--text); border-radius: 4px; padding: 5px 10px;
+  width: 220px; outline: none;
+}
+.setup-input:focus { border-color: var(--ut-amber); }
+.setup-btn {
+  font-family: 'DM Mono', monospace; font-size: 10px;
+  letter-spacing: 0.08em; text-transform: uppercase;
+  background: var(--ut-amber); color: #1a1410;
+  border: none; border-radius: 4px; padding: 6px 12px;
+  cursor: pointer; font-weight: 500;
+}
+.setup-btn:hover { opacity: 0.88; }
+.setup-link { font-size: 10px; color: var(--ut-coral); text-decoration: none; white-space: nowrap; }
+.setup-link:hover { text-decoration: underline; }
+
+/* ── TOP BAR ── */
+.top-bar {
+  display: flex; align-items: flex-start;
+  justify-content: space-between; margin-bottom: 16px; gap: 12px; flex-wrap: wrap;
+}
+.brand { display: flex; flex-direction: column; gap: 3px; }
+.brand-eyebrow { font-size: 10px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--muted); }
+.brand-title {
+  font-family: 'DM Serif Display', serif; font-size: 17px; font-weight: 400;
+  background: var(--ut-grad); -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent; background-clip: text; line-height: 1.2;
+}
+.top-right { display: flex; align-items: center; gap: 10px; }
+.status-badge {
+  display: flex; align-items: center; gap: 6px;
+  font-size: 10px; letter-spacing: 0.1em; text-transform: uppercase;
+  border: 1px solid; border-radius: 3px; padding: 4px 10px;
+  transition: color 0.3s, border-color 0.3s;
+}
+.status-badge.safe   { color: var(--green); border-color: rgba(61,170,116,0.35); }
+.status-badge.warn   { color: var(--amber); border-color: rgba(212,135,58,0.45); }
+.status-badge.alert  { color: var(--red);   border-color: rgba(217,79,79,0.45); }
+.pulse { width: 6px; height: 6px; border-radius: 50%; background: currentColor; animation: blink 2.4s ease-in-out infinite; }
+@keyframes blink { 0%,100%{opacity:1} 50%{opacity:0.2} }
+.toggle { display: flex; align-items: center; gap: 7px; font-size: 10px; color: var(--muted); letter-spacing: 0.08em; cursor: pointer; user-select: none; }
+.toggle-track { width: 32px; height: 17px; background: var(--toggle-bg); border: 1px solid var(--border2); border-radius: 9px; position: relative; transition: background 0.2s; }
+.toggle-thumb { width: 11px; height: 11px; border-radius: 50%; background: var(--ut-amber); position: absolute; top: 2px; left: 2px; transition: left 0.2s; }
+[data-theme="light"] .toggle-thumb { left: 17px; }
+
+/* ── GRAD LINE ── */
+.grad-line { height: 2px; background: var(--ut-grad); margin-bottom: 16px; border-radius: 1px; opacity: 0.7; }
+
+/* ── LOADING OVERLAY ── */
+.loading-wrap { text-align: center; padding: 40px 20px; }
+.loading-wrap p { font-size: 11px; color: var(--muted); margin-top: 10px; letter-spacing: 0.08em; }
+.spinner {
+  width: 28px; height: 28px; border: 2px solid var(--border2);
+  border-top-color: var(--ut-amber); border-radius: 50%;
+  animation: spin 0.9s linear infinite; margin: 0 auto;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* ── ERROR BOX ── */
+.error-box {
+  background: var(--surface); border: 1px solid rgba(217,79,79,0.35);
+  border-left: 3px solid var(--red); border-radius: 6px;
+  padding: 12px 14px; font-size: 11px; color: var(--muted);
+  display: none; margin-bottom: 14px;
+}
+.error-box.show { display: block; }
+.error-box strong { color: var(--red); }
+
+/* ── CARDS ── */
+.cards { display: grid; grid-template-columns: repeat(3, minmax(0,1fr)); gap: 8px; margin-bottom: 16px; }
+.card {
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: 6px; padding: 13px 14px;
+  position: relative; overflow: hidden; transition: background 0.25s, border-color 0.25s;
+}
+.card::after { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 2px; background: var(--ut-grad); }
+.card-label { font-size: 9px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--muted); margin-bottom: 7px; }
+.card-value { font-size: 24px; font-weight: 300; letter-spacing: -0.02em; line-height: 1; margin-bottom: 8px; font-family: 'DM Mono', monospace; transition: color 0.4s; }
+.card-value.safe  { color: var(--green); }
+.card-value.warn  { color: var(--amber); }
+.card-value.alert { color: var(--red);   }
+.bar-track { background: var(--surface2); border-radius: 1px; height: 2px; margin-bottom: 6px; overflow: hidden; }
+.bar-fill { height: 100%; border-radius: 1px; transition: width 0.6s ease, background 0.4s; }
+.bar-fill.safe  { background: var(--green); }
+.bar-fill.warn  { background: var(--amber); }
+.bar-fill.alert { background: var(--red);   }
+.card-meta { font-size: 9px; letter-spacing: 0.06em; color: var(--muted); }
+.card-delta { font-size: 9px; letter-spacing: 0.04em; margin-top: 3px; }
+.delta-up   { color: var(--red);   }
+.delta-down { color: var(--green); }
+.delta-flat { color: var(--muted); }
+
+/* ── TABS ── */
+.tabs { display: flex; gap: 0; margin-bottom: 14px; border: 1px solid var(--border2); border-radius: 5px; overflow: hidden; width: fit-content; }
+.tab {
+  padding: 6px 16px; font-size: 10px; font-family: 'DM Mono', monospace;
+  letter-spacing: 0.1em; text-transform: uppercase; cursor: pointer;
+  color: var(--muted); background: none; border: none;
+  border-right: 1px solid var(--border2); transition: all 0.15s;
+}
+.tab:last-child { border-right: none; }
+.tab:hover { color: var(--text); }
+.tab.active { color: var(--text); background: var(--surface2); position: relative; }
+.tab.active::after { content: ''; position: absolute; bottom: 0; left: 0; right: 0; height: 2px; background: var(--ut-grad); }
+
+/* ── CHART PANEL ── */
+.chart-panel { background: var(--surface); border: 1px solid var(--border); border-radius: 6px; padding: 16px 18px; transition: background 0.25s, border-color 0.25s; }
+.chart-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 12px; flex-wrap: wrap; gap: 8px; }
+.chart-title { font-family: 'DM Serif Display', serif; font-size: 14px; font-weight: 400; color: var(--text); font-style: italic; margin-bottom: 2px; }
+.chart-sub { font-size: 10px; color: var(--muted); letter-spacing: 0.06em; }
+.legend { display: flex; gap: 12px; flex-wrap: wrap; align-items: center; }
+.leg { display: flex; align-items: center; gap: 5px; font-size: 10px; color: var(--muted); }
+.leg-dot { width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0; }
+.leg-dash { width: 14px; height: 0; border-top: 1.5px dashed; flex-shrink: 0; }
+.chart-wrap { position: relative; width: 100%; height: 230px; }
+
+/* ── FOOTER ── */
+.footer { margin-top: 12px; display: flex; justify-content: space-between; flex-wrap: wrap; gap: 4px; font-size: 9px; letter-spacing: 0.06em; color: var(--faint); }
+.footer a { color: var(--ut-coral); text-decoration: none; opacity: 0.8; }
+.footer a:hover { text-decoration: underline; }
+.last-updated { font-size: 9px; color: var(--muted); margin-top: 6px; text-align: right; letter-spacing: 0.04em; }
+
+/* ── RESPONSIVE ── */
+@media (max-width: 560px) {
+  .cards { grid-template-columns: 1fr; }
+  .card-value { font-size: 20px; }
+  .tabs { flex-wrap: wrap; width: 100%; }
+  .tab { flex: 1; border-right: none; border-bottom: 1px solid var(--border2); }
+  .tab:last-child { border-bottom: none; }
+  body { padding: 16px 14px; }
+  .setup-banner { flex-direction: column; }
+}
+</style>
+</head>
+<body>
+
+<!-- FRED API KEY SETUP -->
+<div class="setup-banner" id="setupBanner">
+  <span class="setup-label">Setup</span>
+  <span class="setup-desc">A free FRED API key is required for Treasury &amp; HY Spread data.
+    <a class="setup-link" href="https://fred.stlouisfed.org/docs/api/api_key.html" target="_blank">Get yours free in 30 sec →</a>
+  </span>
+  <div class="setup-input-wrap">
+    <input class="setup-input" id="apiKeyInput" type="text" placeholder="Paste FRED API key here…" />
+    <button class="setup-btn" onclick="saveKey()">Load Data</button>
+  </div>
+</div>
+
+<div class="error-box" id="errorBox"><strong>Data error:</strong> <span id="errorMsg"></span></div>
+
+<!-- TOP BAR -->
+<div class="top-bar">
+  <div class="brand">
+    <div class="brand-eyebrow">++ United Tribe ++</div>
+    <div class="brand-title">Financial Stress Monitor</div>
+  </div>
+  <div class="top-right">
+    <div class="status-badge safe" id="statusBadge"><div class="pulse"></div><span id="statusText">Loading…</span></div>
+    <div class="toggle" onclick="toggleTheme()">
+      <span id="toggleLabel">Light</span>
+      <div class="toggle-track"><div class="toggle-thumb"></div></div>
+    </div>
+  </div>
+</div>
+
+<div class="grad-line"></div>
+
+<!-- LOADING -->
+<div class="loading-wrap" id="loadingWrap">
+  <div class="spinner"></div>
+  <p>Fetching live market data…</p>
+</div>
+
+<!-- MAIN CONTENT (hidden until loaded) -->
+<div id="mainContent" style="display:none;">
+  <div class="cards">
+    <div class="card">
+      <div class="card-label">10Y Treasury yield</div>
+      <div class="card-value safe" id="t10yValue">—</div>
+      <div class="bar-track"><div class="bar-fill safe" id="t10yBar" style="width:0%"></div></div>
+      <div class="card-meta" id="t10yMeta">Alert at 5.00%</div>
+      <div class="card-delta" id="t10yDelta"></div>
+    </div>
+    <div class="card">
+      <div class="card-label">KRE regional banks</div>
+      <div class="card-value safe" id="kreValue">—</div>
+      <div class="bar-track"><div class="bar-fill safe" id="kreBar" style="width:0%"></div></div>
+      <div class="card-meta" id="kreMeta">Alert at −30% from close</div>
+      <div class="card-delta" id="kreDelta"></div>
+    </div>
+    <div class="card">
+      <div class="card-label">HY spread (OAS)</div>
+      <div class="card-value safe" id="hyValue">—</div>
+      <div class="bar-track"><div class="bar-fill safe" id="hyBar" style="width:0%"></div></div>
+      <div class="card-meta" id="hyMeta">Alert at 6.00%</div>
+      <div class="card-delta" id="hyDelta"></div>
+    </div>
+  </div>
+
+  <div class="tabs">
+    <button class="tab active" onclick="showChart(0,this)">10Y Treasury</button>
+    <button class="tab" onclick="showChart(1,this)">KRE ETF</button>
+    <button class="tab" onclick="showChart(2,this)">HY Spread</button>
+  </div>
+
+  <div class="chart-panel">
+    <div class="chart-header">
+      <div>
+        <div class="chart-title" id="ctitle">10-Year Treasury yield</div>
+        <div class="chart-sub" id="csub">Daily closes · last 12 months · COVID &amp; SVB crisis zones marked</div>
+      </div>
+      <div class="legend" id="legend">
+        <span class="leg"><span class="leg-dot" style="background:#4A86D4"></span>10Y yield</span>
+        <span class="leg"><span class="leg-dash" style="border-color:#D94F4F"></span>5% alert</span>
+        <span class="leg"><span class="leg-dot" style="background:#D4873A;opacity:.8"></span>Crisis zone</span>
+      </div>
+    </div>
+    <div class="chart-wrap"><canvas id="mainChart"></canvas></div>
+  </div>
+
+  <div class="last-updated" id="lastUpdated"></div>
+</div>
+
+<div class="footer">
+  <span>Sources: <a href="https://fred.stlouisfed.org" target="_blank">FRED</a> (DGS10, BAMLH0A0HYM2) · <a href="https://finance.yahoo.com/quote/KRE" target="_blank">Yahoo Finance</a> (KRE) · Refreshes on page load</span>
+  <span><a href="https://unitedtribe.net" target="_blank">unitedtribe.net</a> · For informational purposes only</span>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/chartjs-plugin-annotation/3.0.1/chartjs-plugin-annotation.min.js"></script>
+<script>
+// ─────────────────────────────────────────────
+// CONFIG
+// ─────────────────────────────────────────────
+const THRESHOLDS = { t10y: 5.0, kreDropPct: 0.30, hy: 6.0 };
+const FRED_BASE  = 'https://api.stlouisfed.org/fred/series/observations';
+const CORS       = 'https://corsproxy.io/?';
+const STORE_KEY  = 'ut_fred_api_key';
+
+let fredKey  = localStorage.getItem(STORE_KEY) || '';
+let liveData = {};   // holds fetched current + history
+let chart;
+let activeIdx = 0;
+
+// ─────────────────────────────────────────────
+// INIT
+// ─────────────────────────────────────────────
+function init() {
+  if (fredKey) {
+    document.getElementById('setupBanner').classList.add('hidden');
+    document.getElementById('apiKeyInput').value = fredKey;
+    fetchAll();
+  } else {
+    document.getElementById('loadingWrap').style.display = 'none';
+  }
+}
+
+function saveKey() {
+  const val = document.getElementById('apiKeyInput').value.trim();
+  if (!val) return;
+  fredKey = val;
+  localStorage.setItem(STORE_KEY, val);
+  document.getElementById('setupBanner').classList.add('hidden');
+  showLoading(true);
+  fetchAll();
+}
+
+// ─────────────────────────────────────────────
+// FETCH ALL THREE SIGNALS
+// ─────────────────────────────────────────────
+async function fetchAll() {
+  showError('');
+  showLoading(true);
+  try {
+    const start = offsetDate(-390); // ~13 months of daily data
+    const [t10yObs, hyObs, kreData] = await Promise.all([
+      fredFetch('DGS10',        start),
+      fredFetch('BAMLH0A0HYM2', start),
+      kreFetch()
+    ]);
+
+    liveData.t10y = processObs(t10yObs);
+    liveData.hy   = processObs(hyObs);
+    liveData.kre  = kreData;
+
+    renderCards();
+    showChart(activeIdx, document.querySelectorAll('.tab')[activeIdx]);
+    document.getElementById('mainContent').style.display = '';
+    showLoading(false);
+    updateStatus();
+    document.getElementById('lastUpdated').textContent =
+      'Last fetched: ' + new Date().toLocaleString('en-US', { timeZoneName:'short' });
+  } catch(e) {
+    showLoading(false);
+    showError(e.message || 'Could not load data. Check your FRED API key and try again.');
+    console.error(e);
+  }
+}
+
+// ─────────────────────────────────────────────
+// FRED API
+// ─────────────────────────────────────────────
+async function fredFetch(seriesId, startDate) {
+  const url = `${FRED_BASE}?series_id=${seriesId}&observation_start=${startDate}&sort_order=asc&file_type=json&api_key=${fredKey}`;
+  const res  = await fetch(url);
+  if (!res.ok) throw new Error(`FRED API error (${res.status}) for ${seriesId}. Check your API key.`);
+  const json = await res.json();
+  if (json.error_message) throw new Error(`FRED: ${json.error_message}`);
+  return json.observations;
+}
+
+// ─────────────────────────────────────────────
+// KRE via corsproxy.io → Yahoo Finance
+// ─────────────────────────────────────────────
+async function kreFetch() {
+  // Yahoo Finance chart API — 1y daily history
+  const yahooUrl = `https://query1.finance.yahoo.com/v8/finance/chart/KRE?interval=1d&range=1y`;
+  const proxyUrl = CORS + encodeURIComponent(yahooUrl);
+  const res = await fetch(proxyUrl);
+  if (!res.ok) throw new Error(`KRE fetch failed (${res.status})`);
+  const json = await res.json();
+  const result = json.chart && json.chart.result && json.chart.result[0];
+  if (!result) throw new Error('Yahoo Finance returned no KRE data.');
+
+  const timestamps  = result.timestamp;
+  const closes      = result.indicators.quote[0].close;
+  const currentPrice = result.meta.regularMarketPrice;
+  const prevClose    = result.meta.chartPreviousClose;
+
+  const dates  = timestamps.map(ts => {
+    const d = new Date(ts * 1000);
+    return d.toISOString().slice(0,10);
+  });
+  const values = closes.map(v => v == null ? null : parseFloat(v.toFixed(2)));
+
+  return { dates, values, current: currentPrice, prevClose };
+}
+
+// ─────────────────────────────────────────────
+// HELPERS
+// ─────────────────────────────────────────────
+function processObs(obs) {
+  const cleaned = obs.filter(o => o.value !== '.' && o.value !== '');
+  const dates  = cleaned.map(o => o.date);
+  const values = cleaned.map(o => parseFloat(o.value));
+  const current = values[values.length - 1];
+  const prev    = values[values.length - 2];
+  return { dates, values, current, prevClose: prev };
+}
+
+function offsetDate(days) {
+  const d = new Date();
+  d.setDate(d.getDate() + days);
+  return d.toISOString().slice(0,10);
+}
+
+function signalStatus(val, threshold, mode) {
+  // mode: 'above' = alert when val >= threshold; 'below' = alert when val <= threshold*dropPct
+  if (mode === 'above') {
+    if (val >= threshold) return 'alert';
+    if (val >= threshold * 0.92) return 'warn';
+    return 'safe';
+  }
+  if (mode === 'kreDrop') {
+    const dropPct = (threshold - val) / threshold;
+    if (dropPct >= 0.30) return 'alert';
+    if (dropPct >= 0.18) return 'warn';
+    return 'safe';
+  }
+  return 'safe';
+}
+
+function deltaEl(current, prev) {
+  if (!prev) return '';
+  const diff = current - prev;
+  const sign = diff > 0 ? '+' : '';
+  const cls  = diff > 0 ? 'delta-up' : diff < 0 ? 'delta-down' : 'delta-flat';
+  return `<span class="${cls}">${sign}${diff.toFixed(2)}</span>`;
+}
+
+// ─────────────────────────────────────────────
+// RENDER CARDS
+// ─────────────────────────────────────────────
+function renderCards() {
+  // 10Y Treasury
+  const t = liveData.t10y;
+  const tStatus = signalStatus(t.current, THRESHOLDS.t10y, 'above');
+  const tBarPct = Math.min(100, (t.current / THRESHOLDS.t10y) * 100).toFixed(1);
+  const tAway   = (THRESHOLDS.t10y - t.current).toFixed(2);
+  setCard('t10y', `${t.current.toFixed(2)}%`, tStatus, tBarPct,
+    `Alert at 5.00% · ${tAway > 0 ? tAway+'% away' : 'THRESHOLD BREACHED'}`,
+    deltaEl(t.current, t.prevClose));
+
+  // KRE
+  const k = liveData.kre;
+  const kTrigger = (k.prevClose * (1 - THRESHOLDS.kreDropPct)).toFixed(2);
+  const kDropPct = ((k.prevClose - k.current) / k.prevClose * 100).toFixed(1);
+  const kBarPct  = Math.max(0, Math.min(100, (k.prevClose - k.current) / k.prevClose / THRESHOLDS.kreDropPct * 100)).toFixed(1);
+  const kStatus  = signalStatus(k.current, k.prevClose, 'kreDown');
+  // simplified: 30% below reference = alert
+  const kSt = k.current <= k.prevClose * 0.70 ? 'alert' : k.current <= k.prevClose * 0.82 ? 'warn' : 'safe';
+  setCard('kre', `$${k.current.toFixed(2)}`, kSt, kBarPct,
+    `Alert at −30% = $${kTrigger} · ${kDropPct > 0 ? kDropPct+'% below prev close' : 'Up from prev close'}`,
+    deltaEl(k.current, k.prevClose));
+
+  // HY Spread
+  const h = liveData.hy;
+  const hStatus = signalStatus(h.current, THRESHOLDS.hy, 'above');
+  const hBarPct = Math.min(100, (h.current / THRESHOLDS.hy) * 100).toFixed(1);
+  const hAway   = (THRESHOLDS.hy - h.current).toFixed(2);
+  setCard('hy', `${h.current.toFixed(2)}%`, hStatus, hBarPct,
+    `Alert at 6.00% · ${hAway > 0 ? hAway+'% away' : 'THRESHOLD BREACHED'}`,
+    deltaEl(h.current, h.prevClose));
+}
+
+function setCard(id, val, status, barPct, meta, delta) {
+  const v = document.getElementById(`${id}Value`);
+  const b = document.getElementById(`${id}Bar`);
+  const m = document.getElementById(`${id}Meta`);
+  const d = document.getElementById(`${id}Delta`);
+  v.textContent = val;
+  v.className = `card-value ${status}`;
+  b.style.width = barPct + '%';
+  b.className = `bar-fill ${status}`;
+  m.textContent = meta;
+  if (d) d.innerHTML = delta;
+}
+
+// ─────────────────────────────────────────────
+// STATUS BADGE
+// ─────────────────────────────────────────────
+function updateStatus() {
+  const t = liveData.t10y;
+  const k = liveData.kre;
+  const h = liveData.hy;
+
+  const tSt = signalStatus(t.current, THRESHOLDS.t10y, 'above');
+  const kSt = k.current <= k.prevClose * 0.70 ? 'alert' : k.current <= k.prevClose * 0.82 ? 'warn' : 'safe';
+  const hSt = signalStatus(h.current, THRESHOLDS.hy, 'above');
+
+  let overall = 'safe';
+  if (tSt === 'alert' || kSt === 'alert' || hSt === 'alert') overall = 'alert';
+  else if (tSt === 'warn'  || kSt === 'warn'  || hSt === 'warn')  overall = 'warn';
+
+  const badge  = document.getElementById('statusBadge');
+  const stText = document.getElementById('statusText');
+  badge.className = `status-badge ${overall}`;
+  stText.textContent = overall === 'alert' ? 'Alert' : overall === 'warn' ? 'Caution' : 'All clear';
+}
+
+// ─────────────────────────────────────────────
+// CHART
+// ─────────────────────────────────────────────
+const chartMeta = [
+  {
+    title: '10-Year Treasury yield',
+    sub: 'Daily closes · last 12 months · COVID & SVB crisis zones marked',
+    legendHtml: `<span class="leg"><span class="leg-dot" style="background:#4A86D4"></span>10Y yield</span>
+                 <span class="leg"><span class="leg-dash" style="border-color:#D94F4F"></span>5% alert</span>
+                 <span class="leg"><span class="leg-dot" style="background:#D4873A;opacity:.8"></span>Crisis</span>`,
+    getLabels: () => liveData.t10y.dates.map(labelDate),
+    getData:   () => liveData.t10y.values,
+    threshold: 5.0, threshLabel: '5.00% alert',
+    yMin: null, yMax: null,
+    yTick: v => v.toFixed(2)+'%',
+    fmt:   v => v.toFixed(2)+'%',
+    rolling: false
+  },
+  {
+    title: 'KRE regional banking ETF',
+    sub: 'Daily closes · last 12 months · −30% trigger shown as dashed line',
+    legendHtml: `<span class="leg"><span class="leg-dot" style="background:#4A86D4"></span>KRE price</span>
+                 <span class="leg"><span class="leg-dash" style="border-color:#D94F4F"></span>−30% trigger</span>`,
+    getLabels: () => liveData.kre.dates.map(labelDate),
+    getData:   () => liveData.kre.values,
+    threshold: null,
+    yMin: null, yMax: null,
+    yTick: v => '$'+v.toFixed(0),
+    fmt:   v => '$'+v.toFixed(2),
+    rolling: true
+  },
+  {
+    title: 'HY option-adjusted spread (BAMLH0A0HYM2)',
+    sub: 'Daily closes · last 12 months · ICE BofA US High Yield Index',
+    legendHtml: `<span class="leg"><span class="leg-dot" style="background:#4A86D4"></span>OA spread</span>
+                 <span class="leg"><span class="leg-dash" style="border-color:#D94F4F"></span>6% alert</span>
+                 <span class="leg"><span class="leg-dot" style="background:#D4873A;opacity:.8"></span>Crisis</span>`,
+    getLabels: () => liveData.hy.dates.map(labelDate),
+    getData:   () => liveData.hy.values,
+    threshold: 6.0, threshLabel: '6.00% alert',
+    yMin: null, yMax: null,
+    yTick: v => v.toFixed(1)+'%',
+    fmt:   v => v.toFixed(2)+'%',
+    rolling: false
+  }
+];
+
+function labelDate(d) {
+  const parts = d.split('-');
+  return `${parts[1]}/${parts[2]}/${parts[0].slice(2)}`;
+}
+
+function showChart(idx, el) {
+  activeIdx = idx;
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  if (el) el.classList.add('active');
+  const m = chartMeta[idx];
+  document.getElementById('ctitle').textContent = m.title;
+  document.getElementById('csub').textContent = m.sub;
+  document.getElementById('legend').innerHTML = m.legendHtml || '';
+  buildChart(idx);
+}
+
+function isDark() { return document.documentElement.getAttribute('data-theme') === 'dark'; }
+
+function buildChart(idx) {
+  const m    = chartMeta[idx];
+  const labels = m.getLabels();
+  const data   = m.getData();
+  const tc = isDark() ? '#555' : '#aaa';
+  const gc = isDark() ? 'rgba(255,255,255,0.04)' : 'rgba(0,0,0,0.05)';
+  const bc = isDark() ? 'rgba(255,255,255,0.07)' : 'rgba(0,0,0,0.08)';
+
+  // skip every N labels for readability
+  const skip = Math.max(1, Math.floor(labels.length / 18));
+
+  const annotations = {};
+
+  if (m.threshold !== null) {
+    annotations.thresh = {
+      type: 'line', yMin: m.threshold, yMax: m.threshold,
+      borderColor: '#D94F4F', borderWidth: 1.5, borderDash: [5,4],
+      label: { display: true, content: m.threshLabel, position: 'end',
+               font: { size: 9, family: "'DM Mono', monospace" },
+               color: '#D94F4F', backgroundColor: 'transparent' }
+    };
+  }
+
+  const pointColors = m.threshold !== null
+    ? data.map(v => v == null ? '#888' : (v >= m.threshold ? '#D94F4F' : '#3DAA74'))
+    : data.map(() => '#3DAA74');
+
+  const datasets = [{
+    data, borderColor: '#4A86D4',
+    backgroundColor: 'rgba(74,134,212,0.07)',
+    borderWidth: 1.8,
+    pointBackgroundColor: pointColors,
+    pointBorderColor: 'transparent',
+    pointRadius: data.length > 120 ? 0 : 2.5,
+    tension: 0.3, fill: true, spanGaps: true
+  }];
+
+  if (m.rolling) {
+    // rolling −30% line based on prior day's close
+    const refClose = liveData.kre.prevClose;
+    datasets.push({
+      data: data.map(() => parseFloat((refClose * 0.70).toFixed(2))),
+      borderColor: '#D94F4F', borderWidth: 1.5, borderDash: [5,4],
+      pointRadius: 0, fill: false
+    });
+  }
+
+  if (chart) chart.destroy();
+  chart = new Chart(document.getElementById('mainChart'), {
+    type: 'line',
+    data: { labels, datasets },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      interaction: { mode: 'index', intersect: false },
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          backgroundColor: isDark() ? '#1a1a1a' : '#fff',
+          borderColor: isDark() ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.08)',
+          borderWidth: 1,
+          titleColor: isDark() ? '#888' : '#999',
+          bodyColor: isDark() ? '#F2EDE8' : '#1A1410',
+          titleFont: { family: "'DM Mono', monospace", size: 10 },
+          bodyFont:  { family: "'DM Mono', monospace", size: 12 },
+          callbacks: { label: ctx => ctx.parsed.y == null ? '—' : ' ' + m.fmt(ctx.parsed.y) }
+        },
+        annotation: { annotations }
+      },
+      scales: {
+        x: {
+          ticks: {
+            color: tc, font: { family:"'DM Mono',monospace", size:9 },
+            maxRotation: 45,
+            callback: (val, i) => i % skip === 0 ? labels[i] : ''
+          },
+          grid: { color: gc },
+          border: { color: bc }
+        },
+        y: {
+          ticks: { color: tc, font: { family:"'DM Mono',monospace", size:9 }, callback: m.yTick },
+          grid: { color: gc },
+          border: { color: bc }
+        }
+      }
+    }
+  });
+}
+
+// ─────────────────────────────────────────────
+// UI HELPERS
+// ─────────────────────────────────────────────
+function showLoading(on) {
+  document.getElementById('loadingWrap').style.display = on ? '' : 'none';
+}
+
+function showError(msg) {
+  const b = document.getElementById('errorBox');
+  const m = document.getElementById('errorMsg');
+  if (msg) { b.classList.add('show'); m.textContent = msg; }
+  else      { b.classList.remove('show'); }
+}
+
+function toggleTheme() {
+  const html = document.documentElement;
+  const next = html.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
+  html.setAttribute('data-theme', next);
+  document.getElementById('toggleLabel').textContent = next === 'dark' ? 'Light' : 'Dark';
+  if (chart) setTimeout(() => buildChart(activeIdx), 30);
+}
+
+// ─────────────────────────────────────────────
+// START
+// ─────────────────────────────────────────────
+init();
+</script>
+</body>
+</html>
