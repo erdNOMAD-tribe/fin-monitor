@@ -1,0 +1,633 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Financial Stress Monitor — United Tribe</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Mono:ital,wght@0,300;0,400;0,500;1,300&family=DM+Serif+Display:ital@0;1&display=swap" rel="stylesheet">
+<style>
+:root {
+  /* United Tribe brand gradient: warm amber → coral */
+  --ut-grad: linear-gradient(90deg, #E8973A 0%, #D95F3B 50%, #C44063 100%);
+  --ut-amber: #E8973A;
+  --ut-coral: #D95F3B;
+  --ut-rose:  #C44063;
+
+  /* Semantic signal colors */
+  --green: #3DAA74;
+  --red:   #D94F4F;
+  --amber: #D4873A;
+  --blue:  #4A86D4;
+}
+
+[data-theme="dark"] {
+  --bg:       #0C0C0C;
+  --surface:  #161616;
+  --surface2: #1E1E1E;
+  --border:   rgba(255,255,255,0.07);
+  --border2:  rgba(255,255,255,0.13);
+  --text:     #F2EDE8;
+  --muted:    #777;
+  --faint:    #444;
+  --toggle-bg:#222;
+  --chart-grid: rgba(255,255,255,0.04);
+  --chart-tick: #555;
+  --tooltip-bg: #1a1a1a;
+  --card-accent: rgba(255,255,255,0.03);
+}
+
+[data-theme="light"] {
+  --bg:       #F7F4F0;
+  --surface:  #FFFFFF;
+  --surface2: #F0ECE7;
+  --border:   rgba(0,0,0,0.08);
+  --border2:  rgba(0,0,0,0.15);
+  --text:     #1A1410;
+  --muted:    #888;
+  --faint:    #CCC;
+  --toggle-bg:#E8E3DD;
+  --chart-grid: rgba(0,0,0,0.05);
+  --chart-tick: #aaa;
+  --tooltip-bg: #fff;
+  --card-accent: rgba(0,0,0,0.015);
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: 'DM Mono', monospace;
+  font-size: 13px;
+  padding: 24px 22px 22px;
+  transition: background 0.25s, color 0.25s;
+  min-height: 100%;
+}
+
+/* ── TOP BAR ── */
+.top-bar {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  margin-bottom: 18px;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.brand {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.brand-eyebrow {
+  font-size: 10px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.brand-title {
+  font-family: 'DM Serif Display', serif;
+  font-size: 17px;
+  font-weight: 400;
+  letter-spacing: 0.01em;
+  background: var(--ut-grad);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  line-height: 1.2;
+}
+
+.top-right {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.status-badge {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 10px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--green);
+  border: 1px solid rgba(61,170,116,0.3);
+  border-radius: 3px;
+  padding: 4px 10px;
+}
+
+.pulse {
+  width: 6px; height: 6px;
+  border-radius: 50%;
+  background: var(--green);
+  animation: blink 2.4s ease-in-out infinite;
+}
+@keyframes blink { 0%,100%{opacity:1} 50%{opacity:0.2} }
+
+/* ── THEME TOGGLE ── */
+.toggle {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 10px;
+  color: var(--muted);
+  letter-spacing: 0.08em;
+  cursor: pointer;
+  user-select: none;
+}
+.toggle-track {
+  width: 32px; height: 17px;
+  background: var(--toggle-bg);
+  border: 1px solid var(--border2);
+  border-radius: 9px;
+  position: relative;
+  transition: background 0.2s;
+}
+.toggle-thumb {
+  width: 11px; height: 11px;
+  border-radius: 50%;
+  background: var(--ut-amber);
+  position: absolute;
+  top: 2px; left: 2px;
+  transition: left 0.2s;
+}
+[data-theme="light"] .toggle-thumb { left: 17px; }
+
+/* ── DIVIDER ── */
+.divider {
+  height: 1px;
+  background: var(--border);
+  margin: 0 0 16px;
+}
+.grad-line {
+  height: 2px;
+  background: var(--ut-grad);
+  margin-bottom: 18px;
+  border-radius: 1px;
+  opacity: 0.7;
+}
+
+/* ── CARDS ── */
+.cards {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0,1fr));
+  gap: 8px;
+  margin-bottom: 16px;
+}
+
+.card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 13px 14px;
+  position: relative;
+  overflow: hidden;
+  transition: background 0.25s, border-color 0.25s;
+}
+
+.card::after {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 2px;
+  background: var(--ut-grad);
+}
+
+.card-label {
+  font-size: 9px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--muted);
+  margin-bottom: 7px;
+}
+
+.card-value {
+  font-size: 24px;
+  font-weight: 300;
+  letter-spacing: -0.02em;
+  color: var(--green);
+  line-height: 1;
+  margin-bottom: 8px;
+  font-family: 'DM Mono', monospace;
+}
+
+.bar-track {
+  background: var(--surface2);
+  border-radius: 1px;
+  height: 2px;
+  margin-bottom: 6px;
+  overflow: hidden;
+}
+
+.bar-fill {
+  height: 100%;
+  border-radius: 1px;
+  background: var(--green);
+}
+
+.card-meta {
+  font-size: 9px;
+  letter-spacing: 0.06em;
+  color: var(--muted);
+}
+
+/* ── TABS ── */
+.tabs {
+  display: flex;
+  gap: 0;
+  margin-bottom: 14px;
+  border: 1px solid var(--border2);
+  border-radius: 5px;
+  overflow: hidden;
+  width: fit-content;
+}
+
+.tab {
+  padding: 6px 16px;
+  font-size: 10px;
+  font-family: 'DM Mono', monospace;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  cursor: pointer;
+  color: var(--muted);
+  background: none;
+  border: none;
+  border-right: 1px solid var(--border2);
+  transition: all 0.15s;
+}
+
+.tab:last-child { border-right: none; }
+.tab:hover { color: var(--text); background: var(--card-accent); }
+
+.tab.active {
+  color: var(--text);
+  background: var(--surface2);
+  position: relative;
+}
+
+.tab.active::after {
+  content: '';
+  position: absolute;
+  bottom: 0; left: 0; right: 0;
+  height: 2px;
+  background: var(--ut-grad);
+}
+
+/* ── CHART PANEL ── */
+.chart-panel {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 16px 18px;
+  transition: background 0.25s, border-color 0.25s;
+}
+
+.chart-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 12px;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.chart-meta {}
+.chart-title {
+  font-family: 'DM Serif Display', serif;
+  font-size: 14px;
+  font-weight: 400;
+  color: var(--text);
+  font-style: italic;
+  margin-bottom: 2px;
+}
+.chart-sub {
+  font-size: 10px;
+  color: var(--muted);
+  letter-spacing: 0.06em;
+}
+
+.legend {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+  align-items: center;
+}
+.leg {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 10px;
+  color: var(--muted);
+}
+.leg-dot { width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0; }
+.leg-dash { width: 14px; height: 0; border-top: 1.5px dashed; flex-shrink: 0; }
+
+.chart-wrap { position: relative; width: 100%; height: 230px; }
+
+/* ── FOOTER ── */
+.footer {
+  margin-top: 12px;
+  display: flex;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 4px;
+  font-size: 9px;
+  letter-spacing: 0.06em;
+  color: var(--faint);
+}
+
+.footer a {
+  color: var(--ut-coral);
+  text-decoration: none;
+  opacity: 0.8;
+}
+
+/* ── RESPONSIVE ── */
+@media (max-width: 560px) {
+  .cards { grid-template-columns: 1fr; }
+  .card-value { font-size: 20px; }
+  .tabs { flex-wrap: wrap; width: 100%; }
+  .tab { flex: 1; border-right: none; border-bottom: 1px solid var(--border2); }
+  .tab:last-child { border-bottom: none; }
+  body { padding: 16px 14px; }
+}
+</style>
+</head>
+<body>
+
+<div class="top-bar">
+  <div class="brand">
+    <div class="brand-eyebrow">++ United Tribe ++</div>
+    <div class="brand-title">Financial Stress Monitor</div>
+  </div>
+  <div class="top-right">
+    <div class="status-badge"><div class="pulse"></div>All clear</div>
+    <div class="toggle" onclick="toggleTheme()">
+      <span id="toggle-label">Light</span>
+      <div class="toggle-track"><div class="toggle-thumb"></div></div>
+    </div>
+  </div>
+</div>
+
+<div class="grad-line"></div>
+
+<div class="cards">
+  <div class="card">
+    <div class="card-label">10Y Treasury yield</div>
+    <div class="card-value">4.43%</div>
+    <div class="bar-track"><div class="bar-fill" style="width:88.6%"></div></div>
+    <div class="card-meta">Alert at 5.00% &nbsp;·&nbsp; 57 bps away</div>
+  </div>
+  <div class="card">
+    <div class="card-label">KRE regional banks</div>
+    <div class="card-value">$66.66</div>
+    <div class="bar-track"><div class="bar-fill" style="width:9%"></div></div>
+    <div class="card-meta">Alert at −30% = $46.66</div>
+  </div>
+  <div class="card">
+    <div class="card-label">HY spread (OAS)</div>
+    <div class="card-value">2.84%</div>
+    <div class="bar-track"><div class="bar-fill" style="width:47.3%"></div></div>
+    <div class="card-meta">Alert at 6.00% &nbsp;·&nbsp; 316 bps away</div>
+  </div>
+</div>
+
+<div class="tabs">
+  <button class="tab active" onclick="show(0,this)">10Y Treasury</button>
+  <button class="tab" onclick="show(1,this)">KRE ETF</button>
+  <button class="tab" onclick="show(2,this)">HY Spread</button>
+</div>
+
+<div class="chart-panel">
+  <div class="chart-header">
+    <div class="chart-meta">
+      <div class="chart-title" id="ctitle">10-Year Treasury yield — 2020 to present</div>
+      <div class="chart-sub" id="csub">Quarterly · COVID and SVB crisis zones marked</div>
+    </div>
+    <div class="legend" id="legend">
+      <span class="leg"><span class="leg-dot" style="background:#4A86D4"></span>10Y yield</span>
+      <span class="leg"><span class="leg-dash" style="border-color:#D94F4F"></span>5% alert</span>
+      <span class="leg"><span class="leg-dot" style="background:#D4873A;opacity:.8"></span>Crisis zone</span>
+    </div>
+  </div>
+  <div class="chart-wrap"><canvas id="mainChart"></canvas></div>
+</div>
+
+<div class="footer">
+  <span>Sources: FRED (DGS10, BAMLH0A0HYM2) · Yahoo Finance (KRE) · Updated Mar 28, 2026</span>
+  <span><a href="https://unitedtribe.net" target="_blank">unitedtribe.net</a> · For informational purposes only</span>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/chartjs-plugin-annotation/3.0.1/chartjs-plugin-annotation.min.js"></script>
+<script>
+const labels = [
+  'Q1 20','Q2 20','Q3 20','Q4 20',
+  'Q1 21','Q2 21','Q3 21','Q4 21',
+  'Q1 22','Q2 22','Q3 22','Q4 22',
+  'Q1 23','Q2 23','Q3 23','Q4 23',
+  'Q1 24','Q2 24','Q3 24','Q4 24',
+  'Q1 25','Q2 25','Q3 25','Q4 25',
+  'Q1 26'
+];
+
+const BLUE  = '#4A86D4';
+const RED   = '#D94F4F';
+const GREEN = '#3DAA74';
+const AMBER = '#D4873A';
+
+const series = [
+  {
+    data: [0.70,0.66,0.68,0.93,1.74,1.47,1.52,1.51,2.34,3.01,3.83,3.88,3.97,3.84,4.57,3.97,4.21,4.40,3.78,4.58,4.21,4.25,3.78,4.57,4.43],
+    threshold: 5.0, above: true,
+    fmt: v => v.toFixed(2)+'%',
+    yMin:0, yMax:6.5,
+    yTick: v => v.toFixed(1)+'%',
+    title: '10-Year Treasury yield — 2020 to present',
+    sub: 'Quarterly · COVID and SVB crisis zones marked',
+    legend: `<span class="leg"><span class="leg-dot" style="background:#4A86D4"></span>10Y yield</span>
+             <span class="leg"><span class="leg-dash" style="border-color:#D94F4F"></span>5% alert</span>
+             <span class="leg"><span class="leg-dot" style="background:#D4873A;opacity:.8"></span>Crisis zone</span>`,
+    rolling: false
+  },
+  {
+    data: [36,37.5,42,51,61,71,67,72,67,57,58,65,42,47,48,54,60,60,55,64,68,63,66,67,66.66],
+    threshold: null,
+    fmt: v => '$'+v.toFixed(2),
+    yMin:20, yMax:90,
+    yTick: v => '$'+v,
+    title: 'KRE regional banking ETF — 2020 to present',
+    sub: 'Quarterly · COVID −55% and SVB −36% crisis zones marked',
+    legend: `<span class="leg"><span class="leg-dot" style="background:#4A86D4"></span>KRE price</span>
+             <span class="leg"><span class="leg-dash" style="border-color:#D94F4F"></span>−30% trigger</span>
+             <span class="leg"><span class="leg-dot" style="background:#D4873A;opacity:.8"></span>Crisis zone</span>`,
+    rolling: true
+  },
+  {
+    data: [11,7,5.2,4.3,3.8,3.5,3.2,3.0,2.9,4.6,5.0,4.8,5.5,4.2,4.0,3.6,3.2,3.1,3.1,2.9,2.9,2.9,2.8,2.85,2.84],
+    threshold: 6.0, above: true,
+    fmt: v => v.toFixed(2)+'%',
+    yMin:0, yMax:13,
+    yTick: v => v.toFixed(1)+'%',
+    title: 'HY option-adjusted spread (BAMLH0A0HYM2) — 2020 to present',
+    sub: 'Quarterly · COVID spike ~11% and SVB blip ~5.5% marked',
+    legend: `<span class="leg"><span class="leg-dot" style="background:#4A86D4"></span>OA spread</span>
+             <span class="leg"><span class="leg-dash" style="border-color:#D94F4F"></span>6% alert</span>
+             <span class="leg"><span class="leg-dot" style="background:#D4873A;opacity:.8"></span>Crisis zone</span>`,
+    rolling: false
+  }
+];
+
+let chart;
+
+function isDark() { return document.documentElement.getAttribute('data-theme') === 'dark'; }
+
+function getTickColor()  { return isDark() ? '#555' : '#aaa'; }
+function getGridColor()  { return isDark() ? 'rgba(255,255,255,0.04)' : 'rgba(0,0,0,0.05)'; }
+function getTooltipBg()  { return isDark() ? '#1a1a1a' : '#fff'; }
+function getTooltipText(){ return isDark() ? '#f0ede8' : '#1a1410'; }
+
+function crisisBox(x0, x1, label, yMin, yMax) {
+  return {
+    type: 'box',
+    xMin: x0-0.4, xMax: x1+0.4,
+    yMin, yMax,
+    backgroundColor: 'rgba(232,151,58,0.10)',
+    borderColor: 'rgba(232,151,58,0.35)',
+    borderWidth: 1,
+    label: {
+      display: true,
+      content: label,
+      position: { x:'center', y:'start' },
+      font: { size: 9, family: "'DM Mono', monospace" },
+      color: '#C4803A',
+      padding: 2,
+      backgroundColor: 'transparent'
+    }
+  };
+}
+
+function buildChart(idx) {
+  const d = series[idx];
+
+  const annotations = {
+    covid: crisisBox(0, 1, 'COVID', d.yMin, d.yMax),
+    svb:   crisisBox(12, 13, 'SVB', d.yMin, d.yMax)
+  };
+
+  if (d.threshold !== null) {
+    annotations.thresh = {
+      type: 'line',
+      yMin: d.threshold, yMax: d.threshold,
+      borderColor: RED,
+      borderWidth: 1.5,
+      borderDash: [5,4],
+      label: {
+        display: true,
+        content: d.threshold + (typeof d.threshold === 'number' && d.threshold > 10 ? '' : '%') + ' alert',
+        position: 'end',
+        font: { size: 9, family: "'DM Mono', monospace" },
+        color: RED,
+        backgroundColor: 'transparent'
+      }
+    };
+  }
+
+  const pointColors = d.threshold !== null
+    ? d.data.map(v => d.above ? (v >= d.threshold ? RED : GREEN) : (v <= d.threshold ? RED : GREEN))
+    : d.data.map(() => GREEN);
+
+  const datasets = [{
+    data: d.data,
+    borderColor: BLUE,
+    backgroundColor: 'rgba(74,134,212,0.07)',
+    borderWidth: 1.8,
+    pointBackgroundColor: pointColors,
+    pointBorderColor: 'transparent',
+    pointRadius: 3,
+    tension: 0.35,
+    fill: true
+  }];
+
+  if (d.rolling) {
+    datasets.push({
+      data: d.data.map(v => parseFloat((v * 0.70).toFixed(2))),
+      borderColor: RED,
+      borderWidth: 1.5,
+      borderDash: [5,4],
+      pointRadius: 0,
+      fill: false,
+      tension: 0.35
+    });
+  }
+
+  const tc = getTickColor();
+  const gc = getGridColor();
+
+  if (chart) chart.destroy();
+
+  chart = new Chart(document.getElementById('mainChart'), {
+    type: 'line',
+    data: { labels, datasets },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      interaction: { mode: 'index', intersect: false },
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          backgroundColor: getTooltipBg(),
+          borderColor: isDark() ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.08)',
+          borderWidth: 1,
+          titleColor: isDark() ? '#888' : '#999',
+          bodyColor: getTooltipText(),
+          titleFont: { family: "'DM Mono', monospace", size: 10 },
+          bodyFont: { family: "'DM Mono', monospace", size: 12 },
+          callbacks: { label: ctx => ' ' + d.fmt(ctx.parsed.y) }
+        },
+        annotation: { annotations }
+      },
+      scales: {
+        x: {
+          ticks: { color: tc, font: { family:"'DM Mono',monospace", size:9 }, maxRotation:45 },
+          grid: { color: gc },
+          border: { color: isDark() ? 'rgba(255,255,255,0.07)' : 'rgba(0,0,0,0.08)' }
+        },
+        y: {
+          min: d.yMin, max: d.yMax,
+          ticks: { color: tc, font: { family:"'DM Mono',monospace", size:9 }, callback: d.yTick },
+          grid: { color: gc },
+          border: { color: isDark() ? 'rgba(255,255,255,0.07)' : 'rgba(0,0,0,0.08)' }
+        }
+      }
+    }
+  });
+}
+
+let activeIdx = 0;
+
+function show(idx, el) {
+  activeIdx = idx;
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  el.classList.add('active');
+  const d = series[idx];
+  document.getElementById('ctitle').textContent = d.title;
+  document.getElementById('csub').textContent = d.sub;
+  document.getElementById('legend').innerHTML = d.legend;
+  buildChart(idx);
+}
+
+function toggleTheme() {
+  const html = document.documentElement;
+  const next = html.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
+  html.setAttribute('data-theme', next);
+  document.getElementById('toggle-label').textContent = next === 'dark' ? 'Light' : 'Dark';
+  setTimeout(() => buildChart(activeIdx), 30);
+}
+
+buildChart(0);
+</script>
+</body>
+</html>
